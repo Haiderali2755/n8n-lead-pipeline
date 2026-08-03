@@ -1,0 +1,287 @@
+{
+  "name": "Lead Intake and Qualification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-intake",
+      "name": "Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-660, 300],
+      "webhookId": "lead-intake"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate and normalise before anything else touches the data.\n// A malformed payload should fail here with a clear reason, not three\n// nodes later inside an API call where the error is unreadable.\n\nconst out = [];\n\nfor (const item of $input.all()) {\n  const b = item.json.body ?? item.json;\n  const errors = [];\n\n  const email = String(b.email ?? '').trim().toLowerCase();\n  const name = String(b.name ?? '').trim();\n  const message = String(b.message ?? '').trim();\n  const source = String(b.source ?? 'unknown').trim();\n\n  // Deliberately permissive. Strict RFC 5322 validation rejects addresses\n  // that work, and the cost of a bad address here is one failed email,\n  // not a corrupted record.\n  if (!email || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) {\n    errors.push('invalid or missing email');\n  }\n  if (!name) errors.push('missing name');\n  if (message.length > 5000) errors.push('message too long');\n\n  // Idempotency key. The same form submitted twice within the dedupe\n  // window is one lead, not two. Keyed on email plus a coarse time bucket\n  // so a genuine second enquiry days later still counts.\n  const bucket = Math.floor(Date.now() / (15 * 60 * 1000));\n  const dedupeKey = `${email}:${bucket}`;\n\n  out.push({\n    json: {\n      valid: errors.length === 0,\n      errors,\n      dedupeKey,\n      lead: {\n        email,\n        name,\n        message,\n        source,\n        received_at: new Date().toISOString(),\n      },\n    },\n  });\n}\n\nreturn out;"
+      },
+      "id": "validate",
+      "name": "Validate and Normalise",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "gate-valid",
+      "name": "Valid Payload?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-220, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TRACKER_URL }}/api/events/claim",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.TRACKER_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "dedupe_key",
+              "value": "={{ $json.dedupeKey }}"
+            },
+            {
+              "name": "workflow",
+              "value": "lead-intake"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "claim",
+      "name": "Claim Dedupe Key",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "first-seen",
+              "leftValue": "={{ $json.claimed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "gate-dupe",
+      "name": "First Time Seen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Rule-based scoring, deliberately not an LLM call.\n//\n// Scoring runs on every single lead, so an API call here would be the\n// slowest and most failure-prone step in the workflow, and the one most\n// likely to blow a rate limit under a traffic spike. Rules are\n// deterministic, instant, free, and a client can read them and disagree\n// with them, which matters more than sophistication.\n\nconst FREE_EMAIL = new Set([\n  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',\n  'aol.com', 'icloud.com', 'proton.me', 'protonmail.com',\n]);\n\nconst BUYING_SIGNALS = [\n  'quote', 'pricing', 'price', 'cost', 'budget', 'demo',\n  'urgent', 'asap', 'timeline', 'contract', 'proposal',\n];\n\nconst out = [];\n\nfor (const item of $input.all()) {\n  const lead = item.json.lead ?? $('Validate and Normalise').first().json.lead;\n  const domain = lead.email.split('@')[1] ?? '';\n  const text = `${lead.message} ${lead.name}`.toLowerCase();\n\n  let score = 30;\n  const reasons = [];\n\n  // A business domain is the single strongest cheap signal that this is\n  // a company rather than someone idly enquiring.\n  if (domain && !FREE_EMAIL.has(domain)) {\n    score += 25;\n    reasons.push('business email domain');\n  }\n\n  const hits = BUYING_SIGNALS.filter((w) => text.includes(w));\n  if (hits.length) {\n    score += Math.min(hits.length * 8, 24);\n    reasons.push(`buying signals: ${hits.join(', ')}`);\n  }\n\n  // Length is a weak proxy for effort. Capped low so a long rambling\n  // message cannot outrank a short specific one.\n  if (lead.message.length > 200) {\n    score += 8;\n    reasons.push('detailed message');\n  } else if (lead.message.length < 20) {\n    score -= 15;\n    reasons.push('very short message');\n  }\n\n  if (/\\b(seo|backlink|guest post|crypto|investment opportunity)\\b/.test(text)) {\n    score -= 40;\n    reasons.push('matches common spam pattern');\n  }\n\n  score = Math.max(0, Math.min(100, score));\n  const tier = score >= 72 ? 'hot' : score >= 42 ? 'warm' : 'cold';\n\n  out.push({\n    json: { ...lead, score, tier, reasons, dedupeKey: item.json.dedupe_key },\n  });\n}\n\nreturn out;"
+      },
+      "id": "score",
+      "name": "Score Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TRACKER_URL }}/api/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.TRACKER_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retry": {
+            "retry": {
+              "maxTries": 3,
+              "waitBetweenTries": 2000
+            }
+          }
+        }
+      },
+      "id": "persist",
+      "name": "Store Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 200],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'accepted', score: $json.score, tier: $json.tier }) }}",
+        "options": {}
+      },
+      "id": "respond-ok",
+      "name": "202 Accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [880, 120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 200,
+        "responseBody": "={{ JSON.stringify({ status: 'duplicate', message: 'already processed' }) }}",
+        "options": {}
+      },
+      "id": "respond-dupe",
+      "name": "200 Duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [440, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 400,
+        "responseBody": "={{ JSON.stringify({ status: 'rejected', errors: $json.errors }) }}",
+        "options": {}
+      },
+      "id": "respond-bad",
+      "name": "400 Rejected",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [0, 440]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TRACKER_URL }}/api/failures",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.TRACKER_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow: 'lead-intake', node: 'Store Lead', error: $json.error ?? 'unknown', payload: $json }) }}",
+        "options": {}
+      },
+      "id": "record-failure",
+      "name": "Record Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 503,
+        "responseBody": "={{ JSON.stringify({ status: 'error', message: 'lead accepted but storage failed, it has been queued for review' }) }}",
+        "options": {}
+      },
+      "id": "respond-fail",
+      "name": "503 Storage Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1100, 300]
+    }
+  ],
+  "connections": {
+    "Lead Webhook": {
+      "main": [[{ "node": "Validate and Normalise", "type": "main", "index": 0 }]]
+    },
+    "Validate and Normalise": {
+      "main": [[{ "node": "Valid Payload?", "type": "main", "index": 0 }]]
+    },
+    "Valid Payload?": {
+      "main": [
+        [{ "node": "Claim Dedupe Key", "type": "main", "index": 0 }],
+        [{ "node": "400 Rejected", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claim Dedupe Key": {
+      "main": [[{ "node": "First Time Seen?", "type": "main", "index": 0 }]]
+    },
+    "First Time Seen?": {
+      "main": [
+        [{ "node": "Score Lead", "type": "main", "index": 0 }],
+        [{ "node": "200 Duplicate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Score Lead": {
+      "main": [[{ "node": "Store Lead", "type": "main", "index": 0 }]]
+    },
+    "Store Lead": {
+      "main": [
+        [{ "node": "202 Accepted", "type": "main", "index": 0 }],
+        [{ "node": "Record Failure", "type": "main", "index": 0 }]
+      ]
+    },
+    "Record Failure": {
+      "main": [[{ "node": "503 Storage Failed", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

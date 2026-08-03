@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Pipeline — Monitor</title>
+<style>
+  /* Categorical slots 1-3 of the reference palette, validated in both modes:
+     all checks pass, worst adjacent CVD deltaE 9.2 light / 9.4 dark. The
+     light-mode aqua carries a contrast WARN at 2.74:1, relieved as the method
+     requires by direct labels on every series plus a table view below.
+     Status colours are the reserved status palette and always ship with an
+     icon and a label, never colour alone. */
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb; --surface-2: #f2f2ef; --surface-3: #e9e9e4;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #7a7974;
+    --rule: #e2e2dd;
+    --hot: #2a78d6; --warm: #eb6834; --cold: #1baf7a;
+    --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1: #1a1a19; --surface-2: #232322; --surface-3: #2c2c2a;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8f8e85;
+      --rule: #34342f;
+      --hot: #3987e5; --warm: #d95926; --cold: #199e70;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1: #1a1a19; --surface-2: #232322; --surface-3: #2c2c2a;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8f8e85;
+    --rule: #34342f;
+    --hot: #3987e5; --warm: #d95926; --cold: #199e70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface-1); color: var(--text-primary);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 40px 24px 64px;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-start;
+           gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -0.02em; }
+  .sub { color: var(--text-secondary); font-size: 14px; margin: 4px 0 0; }
+  .controls { display: flex; gap: 8px; align-items: center; }
+  select, button {
+    font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 8px;
+    border: 1px solid var(--rule); background: var(--surface-2);
+    color: var(--text-primary); cursor: pointer;
+  }
+
+  /* Health banner. Status colour never carries meaning alone — each state
+     ships with an icon and a written label. */
+  .health { display: flex; align-items: center; gap: 10px; padding: 13px 16px;
+            border-radius: 10px; margin: 22px 0 14px; font-size: 14px;
+            background: var(--surface-2); border-left: 3px solid var(--good); }
+  .health.warn { border-left-color: var(--warning); }
+  .health.bad { border-left-color: var(--critical); }
+  .health .icon { font-size: 15px; flex: none; }
+  .health b { font-weight: 640; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 10px; margin-bottom: 30px; }
+  .kpi { background: var(--surface-2); border-radius: 10px; padding: 14px 16px; }
+  .kpi-label { font-size: 11.5px; color: var(--text-muted); text-transform: uppercase;
+               letter-spacing: 0.05em; display: block; }
+  .kpi-val { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums;
+             display: block; margin-top: 3px; letter-spacing: -0.02em; }
+  .kpi-sub { font-size: 12px; color: var(--text-secondary); }
+
+  section { margin-bottom: 30px; }
+  h2 { font-size: 14px; font-weight: 620; margin: 0 0 4px; }
+  .note { font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px; }
+
+  .chartwrap { overflow-x: auto; }
+  svg { display: block; width: 100%; height: auto; min-width: 480px; }
+
+  .legend { display: flex; gap: 18px; font-size: 13px; color: var(--text-secondary);
+            flex-wrap: wrap; margin-top: 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+
+  .bars { display: flex; flex-direction: column; gap: 7px; }
+  .row { display: grid; grid-template-columns: 68px 1fr auto; align-items: center;
+         gap: 12px; border-radius: 5px; }
+  .row:hover { background: var(--surface-2); }
+  .rl { font-size: 12.5px; color: var(--text-secondary); }
+  .track { background: var(--surface-3); border-radius: 4px; height: 22px; }
+  .bar { height: 22px; border-radius: 0 4px 4px 0; min-width: 3px;
+         transition: width .35s ease; }
+  .rv { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  table { border-collapse: collapse; font-size: 13px; width: 100%; min-width: 560px; }
+  th, td { text-align: left; padding: 8px 14px 8px 0; border-bottom: 1px solid var(--rule);
+           font-variant-numeric: tabular-nums; }
+  th { color: var(--text-secondary); font-weight: 600; font-size: 12px;
+       text-transform: uppercase; letter-spacing: 0.04em; }
+  td.num { text-align: right; }
+  .tblwrap { overflow-x: auto; }
+  .tier-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .muted { color: var(--text-muted); }
+  .empty { color: var(--text-muted); font-size: 13.5px; padding: 20px 0; }
+
+  footer { margin-top: 34px; font-size: 12.5px; color: var(--text-muted);
+           border-top: 1px solid var(--rule); padding-top: 16px; }
+  footer a { color: inherit; }
+
+  @media (max-width: 560px) {
+    body { padding: 28px 16px 48px; }
+    h1 { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Lead pipeline monitor</h1>
+      <p class="sub">n8n handles the workflow. This shows whether it is actually working.</p>
+    </div>
+    <div class="controls">
+      <select id="window" aria-label="Time window">
+        <option value="24">Last 24 hours</option>
+        <option value="72">Last 3 days</option>
+        <option value="168">Last 7 days</option>
+      </select>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <div class="health" id="health">
+    <span class="icon" id="health-icon">•</span>
+    <span id="health-text">Loading…</span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <h2>Leads over time</h2>
+    <p class="note">Hourly volume, with the hot-tier share shown against it. A flat
+       line here when the form is live is the thing worth investigating.</p>
+    <div class="chartwrap" id="timeline"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--hot)"></i>hot leads</span>
+      <span><i class="swatch" style="background:var(--text-muted)"></i>all leads</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Score distribution by tier</h2>
+    <p class="note">Scoring is rule-based and deterministic, so a sudden shift in
+       this mix usually means the incoming traffic changed, not the scoring.</p>
+    <div class="bars" id="tiers"></div>
+  </section>
+
+  <section>
+    <h2>By source</h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Source</th><th class="num">Leads</th><th class="num">Avg score</th></tr></thead>
+        <tbody id="sources"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Recent leads</h2>
+    <div class="tblwrap">
+      <table>
+        <thead><tr>
+          <th>Received</th><th>Name</th><th>Source</th>
+          <th class="num">Score</th><th>Tier</th>
+        </tr></thead>
+        <tbody id="leads"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Unresolved failures</h2>
+    <p class="note">Every workflow error is recorded here rather than left in the
+       n8n execution log, so a silent break surfaces without anyone going looking.</p>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>When</th><th>Node</th><th>Error</th></tr></thead>
+        <tbody id="failures"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Workflow JSON, API source and setup:
+    <a href="https://github.com/Haiderali2755/n8n-lead-pipeline">github.com/Haiderali2755/n8n-lead-pipeline</a>
+  </footer>
+
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const TIERS = [
+  { key: 'hot',  label: 'Hot',  varName: '--hot'  },
+  { key: 'warm', label: 'Warm', varName: '--warm' },
+  { key: 'cold', label: 'Cold', varName: '--cold' },
+];
+
+function renderHealth(stats) {
+  const el = $('health');
+  const mins = stats.minutes_since_last_lead;
+  const fails = stats.open_failures;
+
+  el.classList.remove('warn', 'bad');
+
+  // Failures first: a broken workflow matters more than a quiet one.
+  if (fails > 0) {
+    el.classList.add('bad');
+    $('health-icon').textContent = '✕';
+    $('health-text').innerHTML =
+      `<b>Failing.</b> ${fails} unresolved ${fails === 1 ? 'failure' : 'failures'} — see below.`;
+    return;
+  }
+  if (mins === null) {
+    el.classList.add('warn');
+    $('health-icon').textContent = '!';
+    $('health-text').innerHTML = '<b>No data yet.</b> No leads have been received.';
+    return;
+  }
+  if (mins > 240) {
+    el.classList.add('warn');
+    $('health-icon').textContent = '!';
+    $('health-text').innerHTML =
+      `<b>Stale.</b> No leads for ${Math.floor(mins / 60)} hours. Check the form and the workflow.`;
+    return;
+  }
+  $('health-icon').textContent = '✓';
+  $('health-text').innerHTML =
+    `<b>Healthy.</b> Last lead ${mins} ${mins === 1 ? 'minute' : 'minutes'} ago, no open failures.`;
+}
+
+function renderKpis(stats) {
+  const t = stats.totals;
+  const mins = stats.minutes_since_last_lead;
+  const since = mins === null ? '—'
+    : mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h`;
+
+  $('kpis').innerHTML = `
+    <div class="kpi"><span class="kpi-label">Leads</span>
+      <span class="kpi-val">${t.total}</span>
+      <span class="kpi-sub">in the last ${stats.window_hours}h</span></div>
+    <div class="kpi"><span class="kpi-label">Hot</span>
+      <span class="kpi-val">${t.hot}</span>
+      <span class="kpi-sub">${t.total ? Math.round(t.hot / t.total * 100) : 0}% of total</span></div>
+    <div class="kpi"><span class="kpi-label">Avg score</span>
+      <span class="kpi-val">${t.avg_score}</span>
+      <span class="kpi-sub">out of 100</span></div>
+    <div class="kpi"><span class="kpi-label">Since last lead</span>
+      <span class="kpi-val">${since}</span>
+      <span class="kpi-sub">${stats.open_failures} open failures</span></div>`;
+}
+
+function renderTimeline(stats) {
+  const data = stats.timeline;
+  if (!data.length) {
+    $('timeline').innerHTML = '<p class="empty">No leads in this window.</p>';
+    return;
+  }
+
+  const W = 900, H = 220, PL = 44, PR = 16, PT = 16, PB = 34;
+  const max = Math.max(...data.map((d) => d.n), 1);
+  const step = (W - PL - PR) / Math.max(data.length, 1);
+  const barW = Math.max(Math.min(step - 4, 34), 3);
+
+  let bars = '';
+  data.forEach((d, i) => {
+    const x = PL + i * step + (step - barW) / 2;
+    const hAll = (d.n / max) * (H - PT - PB);
+    const hHot = (d.hot / max) * (H - PT - PB);
+    const t = new Date(d.hour).toLocaleString(undefined,
+      { month: 'short', day: 'numeric', hour: 'numeric' });
+    // All-leads bar in muted ink, hot overlaid in slot 1. Two marks on one
+    // scale, not two axes.
+    bars += `<g><title>${esc(t)}: ${d.n} leads, ${d.hot} hot</title>`
+      + `<rect x="${x.toFixed(1)}" y="${(H - PB - hAll).toFixed(1)}" width="${barW.toFixed(1)}"`
+      + ` height="${hAll.toFixed(1)}" rx="3" fill="var(--surface-3)"/>`
+      + `<rect x="${x.toFixed(1)}" y="${(H - PB - hHot).toFixed(1)}" width="${barW.toFixed(1)}"`
+      + ` height="${hHot.toFixed(1)}" rx="3" fill="var(--hot)"/></g>`;
+  });
+
+  let ticks = '';
+  for (let i = 0; i <= 3; i++) {
+    const v = Math.round((max * i) / 3);
+    const y = H - PB - (v / max) * (H - PT - PB);
+    ticks += `<line x1="${PL}" y1="${y.toFixed(1)}" x2="${W - PR}" y2="${y.toFixed(1)}"`
+      + ` stroke="var(--rule)" stroke-width="1" opacity="0.6"/>`
+      + `<text x="${PL - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end"`
+      + ` font-size="11" fill="var(--text-muted)">${v}</text>`;
+  }
+
+  const first = new Date(data[0].hour).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric' });
+  const last = new Date(data[data.length - 1].hour).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric' });
+
+  $('timeline').innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hourly lead volume with hot-tier share">`
+    + ticks + bars
+    + `<text x="${PL}" y="${H - 8}" font-size="11" fill="var(--text-muted)">${esc(first)}</text>`
+    + `<text x="${W - PR}" y="${H - 8}" font-size="11" fill="var(--text-muted)" text-anchor="end">${esc(last)}</text>`
+    + `</svg>`;
+}
+
+function renderTiers(stats) {
+  const t = stats.totals;
+  const peak = Math.max(t.hot, t.warm, t.cold, 1);
+  $('tiers').innerHTML = TIERS.map(({ key, label, varName }) => {
+    const n = t[key];
+    const pct = (n / peak) * 100;
+    return `<div class="row" tabindex="0" title="${label}: ${n} leads">
+      <span class="rl">${label}</span>
+      <div class="track"><div class="bar" style="width:${pct.toFixed(1)}%;background:var(${varName})"></div></div>
+      <span class="rv">${n}</span></div>`;
+  }).join('');
+}
+
+function renderSources(stats) {
+  const rows = stats.by_source;
+  $('sources').innerHTML = rows.length
+    ? rows.map((r) => `<tr><td>${esc(r.source)}</td>`
+        + `<td class="num">${r.n}</td><td class="num">${r.avg_score}</td></tr>`).join('')
+    : '<tr><td colspan="3" class="muted">No leads yet.</td></tr>';
+}
+
+function renderLeads(rows) {
+  const varFor = { hot: '--hot', warm: '--warm', cold: '--cold' };
+  $('leads').innerHTML = rows.length
+    ? rows.slice(0, 12).map((r) => {
+        const when = new Date(r.received_at).toLocaleString(undefined,
+          { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return `<tr><td class="muted">${esc(when)}</td><td>${esc(r.name)}</td>`
+          + `<td>${esc(r.source)}</td><td class="num">${r.score}</td>`
+          + `<td><span class="tier-tag"><i class="dot" style="background:var(${varFor[r.tier]})"></i>${esc(r.tier)}</span></td></tr>`;
+      }).join('')
+    : '<tr><td colspan="5" class="muted">No leads yet. POST one to the webhook to see it appear.</td></tr>';
+}
+
+function renderFailures(rows) {
+  $('failures').innerHTML = rows.length
+    ? rows.slice(0, 10).map((r) => {
+        const when = new Date(r.occurred_at).toLocaleString(undefined,
+          { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return `<tr><td class="muted">${esc(when)}</td><td>${esc(r.node)}</td>`
+          + `<td>${esc(r.error).slice(0, 120)}</td></tr>`;
+      }).join('')
+    : '<tr><td colspan="3" class="muted">None. The workflow has not errored in this window.</td></tr>';
+}
+
+async function load() {
+  const hours = $('window').value;
+  try {
+    const [stats, leads, failures] = await Promise.all([
+      fetch(`/api/stats?hours=${hours}`).then((r) => r.json()),
+      fetch('/api/leads?limit=12').then((r) => r.json()),
+      fetch('/api/failures?limit=10').then((r) => r.json()),
+    ]);
+    renderHealth(stats);
+    renderKpis(stats);
+    renderTimeline(stats);
+    renderTiers(stats);
+    renderSources(stats);
+    renderLeads(leads);
+    renderFailures(failures);
+  } catch (e) {
+    $('health').classList.add('bad');
+    $('health-icon').textContent = '✕';
+    $('health-text').innerHTML = '<b>Cannot reach the tracker API.</b> Is it running?';
+  }
+}
+
+$('refresh').addEventListener('click', load);
+$('window').addEventListener('change', load);
+load();
+// Polling rather than websockets: this is a monitor, not a live feed, and a
+// 30s refresh is well inside the resolution anyone acts on.
+setInterval(load, 30000);
+</script>
+</body>
+</html>

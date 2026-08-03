@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: leads
+      POSTGRES_PASSWORD: leads
+      POSTGRES_DB: leads
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leads"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  tracker:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://leads:leads@db:5432/leads
+      TRACKER_API_KEY: ${TRACKER_API_KEY:-dev-key-change-me}
+      DEDUPE_WINDOW_MINUTES: 15
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+
+  n8n:
+    image: n8nio/n8n:latest
+    environment:
+      # Passed through to the workflow so the HTTP nodes know where the tracker
+      # lives. Using the compose service name keeps it working without any
+      # host networking assumptions.
+      TRACKER_URL: http://tracker:8000
+      TRACKER_API_KEY: ${TRACKER_API_KEY:-dev-key-change-me}
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: Asia/Karachi
+      # Allows $env access inside Code and HTTP nodes. Without this the
+      # workflow cannot read TRACKER_URL and every request fails at runtime.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+    ports: ["5678:5678"]
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./workflows:/workflows:ro
+    depends_on:
+      - tracker
+
+volumes:
+  db-data:
+  n8n-data:
