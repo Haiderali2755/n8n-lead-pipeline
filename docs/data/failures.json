@@ -1,0 +1,13 @@
+[
+ {
+  "id": 3,
+  "workflow": "lead-intake",
+  "node": "Store Lead",
+  "error": "connect ETIMEDOUT \u2014 tracker unreachable during deploy",
+  "payload": {
+   "email": "demo@example.com"
+  },
+  "occurred_at": "2026-08-03T17:46:35.771271+00:00",
+  "resolved": true
+ }
+]

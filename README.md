@@ -4,6 +4,8 @@ A lead intake workflow built in n8n, with the parts a visual workflow tool is
 bad at moved into a small FastAPI service: atomic deduplication, durable
 storage, and a dashboard that shows whether the workflow is actually running.
 
+**[→ Live demo dashboard](https://haiderali2755.github.io/n8n-lead-pipeline/)**
+
 **Personal project** — built to demonstrate the pattern, not for a client.
 
 ## The problem it addresses
@@ -128,12 +130,33 @@ That one scores highly: business domain, several buying signals, detailed
 message. Send it twice within 15 minutes and the second call returns
 `{"status":"duplicate"}` without creating a second lead.
 
+## The demo page
+
+`docs/` holds a static copy of the dashboard for GitHub Pages. It is the same
+interface rendering fixtures captured off a running instance rather than
+polling the API, because Pages serves static files only. The page says so at
+the top rather than implying it is live.
+
+Timestamps are rebased at render time against the newest lead, so the snapshot
+reads as recent months later instead of drifting into "3 weeks ago".
+
+To regenerate it:
+
+```bash
+docker compose up -d
+python3 scripts/seed.py
+python3 scripts/capture_demo.py
+```
+
 ## Layout
 
 ```
 workflows/lead-intake.json   The n8n workflow, importable
 api/main.py                  FastAPI tracker: dedupe, storage, stats
-dashboard/index.html         Monitoring dashboard, no build step
+dashboard/index.html         Live monitoring dashboard, no build step
+docs/                        Static demo for GitHub Pages
+scripts/seed.py              Sample data using the workflow's own scoring rules
+scripts/capture_demo.py      Regenerates the demo fixtures from a running stack
 docker-compose.yml           n8n + Postgres + tracker
 ```
 

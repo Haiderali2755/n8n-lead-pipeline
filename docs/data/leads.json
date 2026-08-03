@@ -1,0 +1,178 @@
+[
+ {
+  "id": 60,
+  "email": "a.malik@meridian-health.org",
+  "name": "Ayesha Malik",
+  "message": "Our procurement team is evaluating vendors. Please send a proposal including implementation timeline and total cost of ownership for a 50 seat deployment.",
+  "source": "referral",
+  "score": 79,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: cost, timeline, proposal"
+  ],
+  "received_at": "2026-08-03T16:36:00.810227+00:00",
+  "created_at": "2026-08-03T17:46:35.666160+00:00"
+ },
+ {
+  "id": 65,
+  "email": "a.malik@meridian-health.org",
+  "name": "Ayesha Malik",
+  "message": "Our procurement team is evaluating vendors. Please send a proposal including implementation timeline and total cost of ownership for a 50 seat deployment.",
+  "source": "referral",
+  "score": 79,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: cost, timeline, proposal"
+  ],
+  "received_at": "2026-08-03T16:00:02.672005+00:00",
+  "created_at": "2026-08-03T17:46:35.686919+00:00"
+ },
+ {
+  "id": 58,
+  "email": "sara@acme-industrial.com",
+  "name": "Sara Ahmed",
+  "message": "We need a quote for 200 units. Budget is approved and the timeline is urgent.",
+  "source": "website-form",
+  "score": 79,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: quote, budget, urgent, timeline"
+  ],
+  "received_at": "2026-08-03T15:48:03.168420+00:00",
+  "created_at": "2026-08-03T17:46:35.657584+00:00"
+ },
+ {
+  "id": 84,
+  "email": "zara@apex-consulting.net",
+  "name": "Zara Iqbal",
+  "message": "Need a quote urgently. Budget approved for this quarter.",
+  "source": "linkedin",
+  "score": 79,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: quote, budget, urgent"
+  ],
+  "received_at": "2026-08-03T15:45:27.301059+00:00",
+  "created_at": "2026-08-03T17:46:35.765374+00:00"
+ },
+ {
+  "id": 68,
+  "email": "tomreeves88@gmail.com",
+  "name": "Tom Reeves",
+  "message": "hi",
+  "source": "facebook-ad",
+  "score": 15,
+  "tier": "cold",
+  "reasons": [
+   "very short message"
+  ],
+  "received_at": "2026-08-03T15:09:13.528513+00:00",
+  "created_at": "2026-08-03T17:46:35.698537+00:00"
+ },
+ {
+  "id": 77,
+  "email": "bilal.khan@northwind-logistics.co",
+  "name": "Bilal Khan",
+  "message": "Looking for pricing on your enterprise plan. Can we book a demo this week?",
+  "source": "website-form",
+  "score": 71,
+  "tier": "warm",
+  "reasons": [
+   "business email domain",
+   "buying signals: pricing, demo"
+  ],
+  "received_at": "2026-08-03T15:00:14.712532+00:00",
+  "created_at": "2026-08-03T17:46:35.735085+00:00"
+ },
+ {
+  "id": 78,
+  "email": "outreach@seo-backlinks-pro.biz",
+  "name": "Growth Team",
+  "message": "We offer premium guest post and backlink opportunities for your site.",
+  "source": "website-form",
+  "score": 15,
+  "tier": "cold",
+  "reasons": [
+   "business email domain",
+   "matches common spam pattern"
+  ],
+  "received_at": "2026-08-03T14:15:21.787484+00:00",
+  "created_at": "2026-08-03T17:46:35.740371+00:00"
+ },
+ {
+  "id": 61,
+  "email": "bilal.khan@northwind-logistics.co",
+  "name": "Bilal Khan",
+  "message": "Looking for pricing on your enterprise plan. Can we book a demo this week?",
+  "source": "website-form",
+  "score": 71,
+  "tier": "warm",
+  "reasons": [
+   "business email domain",
+   "buying signals: pricing, demo"
+  ],
+  "received_at": "2026-08-03T12:25:17.160067+00:00",
+  "created_at": "2026-08-03T17:46:35.670654+00:00"
+ },
+ {
+  "id": 73,
+  "email": "outreach@seo-backlinks-pro.biz",
+  "name": "Growth Team",
+  "message": "We offer premium guest post and backlink opportunities for your site.",
+  "source": "website-form",
+  "score": 15,
+  "tier": "cold",
+  "reasons": [
+   "business email domain",
+   "matches common spam pattern"
+  ],
+  "received_at": "2026-08-03T11:00:00.276216+00:00",
+  "created_at": "2026-08-03T17:46:35.717623+00:00"
+ },
+ {
+  "id": 67,
+  "email": "omar@gmail.com",
+  "name": "Omar Farooq",
+  "message": "I'd like to know more about what you offer and whether it fits our use case.",
+  "source": "website-form",
+  "score": 30,
+  "tier": "cold",
+  "reasons": [],
+  "received_at": "2026-08-03T10:48:15.824708+00:00",
+  "created_at": "2026-08-03T17:46:35.694880+00:00"
+ },
+ {
+  "id": 81,
+  "email": "outreach@seo-backlinks-pro.biz",
+  "name": "Growth Team",
+  "message": "We offer premium guest post and backlink opportunities for your site.",
+  "source": "website-form",
+  "score": 15,
+  "tier": "cold",
+  "reasons": [
+   "business email domain",
+   "matches common spam pattern"
+  ],
+  "received_at": "2026-08-03T10:37:47.161785+00:00",
+  "created_at": "2026-08-03T17:46:35.752291+00:00"
+ },
+ {
+  "id": 69,
+  "email": "a.malik@meridian-health.org",
+  "name": "Ayesha Malik",
+  "message": "Our procurement team is evaluating vendors. Please send a proposal including implementation timeline and total cost of ownership for a 50 seat deployment.",
+  "source": "referral",
+  "score": 79,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: cost, timeline, proposal"
+  ],
+  "received_at": "2026-08-03T09:47:23.964870+00:00",
+  "created_at": "2026-08-03T17:46:35.702155+00:00"
+ }
+]
