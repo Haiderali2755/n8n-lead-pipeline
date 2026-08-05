@@ -4,6 +4,10 @@ A lead intake workflow built in n8n, with the parts a visual workflow tool is
 bad at moved into a small FastAPI service: atomic deduplication, durable
 storage, and a dashboard that shows whether the workflow is actually running.
 
+The same pipeline was then rebuilt in **Make.com** and **Zapier** against the
+same tracker — see **[COMPARISON.md](COMPARISON.md)** for what each tool could
+and could not do, measured rather than quoted.
+
 **[→ Live demo dashboard](https://haiderali2755.github.io/n8n-lead-pipeline/)**
 
 **Personal project** — built to demonstrate the pattern, not for a client.
@@ -179,7 +183,10 @@ python3 scripts/build_demo_page.py # rebuild the static page
 ## Layout
 
 ```
-workflows/lead-intake.json   The n8n workflow, importable
+workflows/lead-intake.json        The n8n workflow, importable
+workflows/lead-intake-make.json   Make.com blueprint, importable
+workflows/lead-intake-zapier.md   The Zapier build, written out step by step
+COMPARISON.md                     The same pipeline in all three tools
 api/main.py                  FastAPI tracker: dedupe, storage, stats
 dashboard/index.html         Live monitoring dashboard, no build step
 docs/                        Static demo for GitHub Pages
