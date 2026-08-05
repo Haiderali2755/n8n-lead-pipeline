@@ -113,6 +113,8 @@
   .tier-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
   .muted { color: var(--text-muted); }
+  .fallback { color: var(--text-muted); font-size: 12px; font-style: italic;
+              border-bottom: 1px dotted var(--rule); cursor: help; }
   .empty { color: var(--text-muted); font-size: 13.5px; padding: 20px 0; }
 
   footer { margin-top: 34px; font-size: 12.5px; color: var(--text-muted);
@@ -145,7 +147,7 @@
 
   <div class="demo-note">
     <b>Static snapshot.</b> This is the real dashboard rendered from data
-    captured off a running instance, so a visitor can see the interface without
+    captured off a running instance, so you can see the interface without
     installing anything. The live version polls the tracker API every 30
     seconds. Run it yourself with <code>docker compose up</code> —
     <a href="https://github.com/Haiderali2755/n8n-lead-pipeline">source</a>.
@@ -188,11 +190,14 @@
 
   <section>
     <h2>Recent leads</h2>
+    <p class="note">Gemini classifies intent and urgency, but only adjusts the
+       rule-based score by up to 30 points. Where it says <i>rules only</i>, the
+       model failed and the lead was scored without it. Hover to see why.</p>
     <div class="tblwrap">
       <table>
         <thead><tr>
           <th>Received</th><th>Name</th><th>Source</th>
-          <th class="num">Score</th><th>Tier</th>
+          <th>AI intent</th><th class="num">Score</th><th>Tier</th>
         </tr></thead>
         <tbody id="leads"></tbody>
       </table>
@@ -200,12 +205,12 @@
   </section>
 
   <section>
-    <h2>Recorded failures</h2>
+    <h2>Unresolved failures</h2>
     <p class="note">Every workflow error is recorded here rather than left in the
        n8n execution log, so a silent break surfaces without anyone going looking.</p>
     <div class="tblwrap">
       <table>
-        <thead><tr><th>When</th><th>Node</th><th>Error</th><th>Status</th></tr></thead>
+        <thead><tr><th>When</th><th>Node</th><th>Error</th></tr></thead>
         <tbody id="failures"></tbody>
       </table>
     </div>
@@ -221,9 +226,8 @@
 <script>
 const $ = (id) => document.getElementById(id);
 
-// Static snapshot: the captured timestamps are fixed, so without rebasing the
-// page would read "3 weeks ago" a month from now. Shift everything by the same
-// offset, preserving the real intervals between leads.
+// Static snapshot: captured timestamps are fixed, so shift them all by one
+// offset at render time. Real intervals between leads are preserved.
 let TIME_SHIFT_MS = 0;
 function computeShift(leads) {
   if (!leads.length) return;
@@ -275,6 +279,12 @@ function renderHealth(stats) {
 
 function renderKpis(stats) {
   const t = stats.totals;
+  // Enrichment rate, not just a count. A client wants to know how often the
+  // model actually answered, and the fallback count next to it makes clear
+  // that a failure costs nothing.
+  const ai = stats.ai ?? { ai_ok: 0, ai_failed: 0 };
+  const aiTotal = ai.ai_ok + ai.ai_failed;
+  const aiPct = aiTotal ? Math.round((ai.ai_ok / aiTotal) * 100) : 0;
   const mins = stats.minutes_since_last_lead;
   const since = mins === null ? '—'
     : mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h`;
@@ -289,6 +299,9 @@ function renderKpis(stats) {
     <div class="kpi"><span class="kpi-label">Avg score</span>
       <span class="kpi-val">${t.avg_score}</span>
       <span class="kpi-sub">out of 100</span></div>
+    <div class="kpi"><span class="kpi-label">AI enrichment</span>
+      <span class="kpi-val">${aiPct}<span style="font-size:12px;color:var(--text-muted)">%</span></span>
+      <span class="kpi-sub">${ai.ai_failed} fell back to rules</span></div>
     <div class="kpi"><span class="kpi-label">Since last lead</span>
       <span class="kpi-val">${since}</span>
       <span class="kpi-sub">${stats.open_failures} open failures</span></div>`;
@@ -370,11 +383,16 @@ function renderLeads(rows) {
     ? rows.slice(0, 12).map((r) => {
         const when = shifted(r.received_at).toLocaleString(undefined,
           { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        // A lead whose enrichment failed shows the reason, not a blank cell.
+        // Blank would read as "no data"; this reads as "handled".
+        const ai = r.ai_intent
+          ? esc(r.ai_intent)
+          : `<span class="fallback" title="${esc(r.ai_status ?? '')}">rules only</span>`;
         return `<tr><td class="muted">${esc(when)}</td><td>${esc(r.name)}</td>`
-          + `<td>${esc(r.source)}</td><td class="num">${r.score}</td>`
+          + `<td>${esc(r.source)}</td><td>${ai}</td><td class="num">${r.score}</td>`
           + `<td><span class="tier-tag"><i class="dot" style="background:var(${varFor[r.tier]})"></i>${esc(r.tier)}</span></td></tr>`;
       }).join('')
-    : '<tr><td colspan="5" class="muted">No leads yet. POST one to the webhook to see it appear.</td></tr>';
+    : '<tr><td colspan="6" class="muted">No leads yet. POST one to the webhook to see it appear.</td></tr>';
 }
 
 function renderFailures(rows) {
@@ -382,12 +400,10 @@ function renderFailures(rows) {
     ? rows.slice(0, 10).map((r) => {
         const when = shifted(r.occurred_at).toLocaleString(undefined,
           { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        const state = r.resolved ? 'resolved' : 'open';
         return `<tr><td class="muted">${esc(when)}</td><td>${esc(r.node)}</td>`
-          + `<td>${esc(r.error).slice(0, 120)}</td>`
-          + `<td class="muted">${state}</td></tr>`;
+          + `<td>${esc(r.error).slice(0, 120)}</td></tr>`;
       }).join('')
-    : '<tr><td colspan="4" class="muted">None. The workflow has not errored in this window.</td></tr>';
+    : '<tr><td colspan="3" class="muted">None. The workflow has not errored in this window.</td></tr>';
 }
 
 async function load() {
@@ -399,8 +415,6 @@ async function load() {
       fetch('data/failures.json').then((r) => r.json()),
     ]);
     computeShift(leads);
-    // Recompute staleness from the rebased timeline so the banner is coherent
-    // with the timestamps shown below it.
     if (leads.length) {
       const newest = shifted(leads[0].received_at).getTime();
       stats.minutes_since_last_lead = Math.max(0, Math.round((Date.now() - newest) / 60000));
@@ -422,8 +436,8 @@ async function load() {
 $('refresh').addEventListener('click', load);
 $('window').addEventListener('change', load);
 load();
-// No polling here. The live dashboard refreshes every 30s against the API;
-// this snapshot has nothing to poll.
+// No polling. The live dashboard refreshes every 30s against the API; a
+// static snapshot has nothing to poll.
 </script>
 </body>
 </html>

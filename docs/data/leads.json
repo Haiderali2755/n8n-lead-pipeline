@@ -1,66 +1,213 @@
 [
  {
-  "id": 60,
-  "email": "a.malik@meridian-health.org",
-  "name": "Ayesha Malik",
-  "message": "Our procurement team is evaluating vendors. Please send a proposal including implementation timeline and total cost of ownership for a 50 seat deployment.",
-  "source": "referral",
-  "score": 79,
-  "tier": "hot",
+  "id": 98,
+  "email": "omar@gmail.com",
+  "name": "Omar Farooq",
+  "message": "I would like to know more about what you offer.",
+  "source": "website-form",
+  "score": 30,
+  "tier": "cold",
   "reasons": [
-   "business email domain",
-   "buying signals: cost, timeline, proposal"
+   "AI enrichment unavailable (schema_mismatch) - rule-based score used"
   ],
-  "received_at": "2026-08-03T16:36:00.810227+00:00",
-  "created_at": "2026-08-03T17:46:35.666160+00:00"
+  "received_at": "2026-08-05T10:20:02.846475+00:00",
+  "created_at": "2026-08-05T10:30:34.626022+00:00",
+  "ai_intent": null,
+  "ai_urgency": null,
+  "ai_summary": null,
+  "ai_status": "schema_mismatch"
  },
  {
-  "id": 65,
-  "email": "a.malik@meridian-health.org",
-  "name": "Ayesha Malik",
-  "message": "Our procurement team is evaluating vendors. Please send a proposal including implementation timeline and total cost of ownership for a 50 seat deployment.",
-  "source": "referral",
-  "score": 79,
-  "tier": "hot",
+  "id": 103,
+  "email": "junaid@swiftcargo.pk",
+  "name": "Junaid Aslam",
+  "message": "Can you handle 500 shipments per month? What is the pricing structure?",
+  "source": "website-form",
+  "score": 63,
+  "tier": "warm",
   "reasons": [
    "business email domain",
-   "buying signals: cost, timeline, proposal"
+   "buying signals: pricing",
+   "AI enrichment unavailable (schema_mismatch) - rule-based score used"
   ],
-  "received_at": "2026-08-03T16:00:02.672005+00:00",
-  "created_at": "2026-08-03T17:46:35.686919+00:00"
+  "received_at": "2026-08-05T09:09:23.157499+00:00",
+  "created_at": "2026-08-05T10:30:34.651398+00:00",
+  "ai_intent": null,
+  "ai_urgency": null,
+  "ai_summary": null,
+  "ai_status": "schema_mismatch"
  },
  {
-  "id": 58,
+  "id": 110,
   "email": "sara@acme-industrial.com",
   "name": "Sara Ahmed",
-  "message": "We need a quote for 200 units. Budget is approved and the timeline is urgent.",
+  "message": "We need a quote for 200 units. Budget approved, timeline urgent.",
   "source": "website-form",
-  "score": 79,
-  "tier": "hot",
-  "reasons": [
-   "business email domain",
-   "buying signals: quote, budget, urgent, timeline"
-  ],
-  "received_at": "2026-08-03T15:48:03.168420+00:00",
-  "created_at": "2026-08-03T17:46:35.657584+00:00"
- },
- {
-  "id": 84,
-  "email": "zara@apex-consulting.net",
-  "name": "Zara Iqbal",
-  "message": "Need a quote urgently. Budget approved for this quarter.",
-  "source": "linkedin",
   "score": 79,
   "tier": "hot",
   "reasons": [
    "business email domain",
    "buying signals: quote, budget, urgent"
   ],
-  "received_at": "2026-08-03T15:45:27.301059+00:00",
-  "created_at": "2026-08-03T17:46:35.765374+00:00"
+  "received_at": "2026-08-05T08:31:40.677122+00:00",
+  "created_at": "2026-08-05T10:30:34.704160+00:00",
+  "ai_intent": "buying",
+  "ai_urgency": "high",
+  "ai_summary": "Wants a quote for 200 units, budget approved",
+  "ai_status": "ok"
  },
  {
-  "id": 68,
+  "id": 109,
+  "email": "nadia@quantum-textiles.com",
+  "name": "Nadia Rahman",
+  "message": "Interested in a demo. Replacing our supplier, need a contract this quarter.",
+  "source": "linkedin",
+  "score": 87,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: demo, contract"
+  ],
+  "received_at": "2026-08-05T07:07:20.675785+00:00",
+  "created_at": "2026-08-05T10:30:34.696370+00:00",
+  "ai_intent": "buying",
+  "ai_urgency": "high",
+  "ai_summary": "Replacing supplier, wants contract this quarter",
+  "ai_status": "ok"
+ },
+ {
+  "id": 95,
+  "email": "sara@acme-industrial.com",
+  "name": "Sara Ahmed",
+  "message": "We need a quote for 200 units. Budget approved, timeline urgent.",
+  "source": "website-form",
+  "score": 79,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: quote, budget, urgent"
+  ],
+  "received_at": "2026-08-05T06:28:02.985096+00:00",
+  "created_at": "2026-08-05T10:30:34.611539+00:00",
+  "ai_intent": "buying",
+  "ai_urgency": "high",
+  "ai_summary": "Wants a quote for 200 units, budget approved",
+  "ai_status": "ok"
+ },
+ {
+  "id": 104,
+  "email": "sara@acme-industrial.com",
+  "name": "Sara Ahmed",
+  "message": "We need a quote for 200 units. Budget approved, timeline urgent.",
+  "source": "website-form",
+  "score": 79,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: quote, budget, urgent"
+  ],
+  "received_at": "2026-08-05T05:19:40.608230+00:00",
+  "created_at": "2026-08-05T10:30:34.658911+00:00",
+  "ai_intent": "buying",
+  "ai_urgency": "high",
+  "ai_summary": "Wants a quote for 200 units, budget approved",
+  "ai_status": "ok"
+ },
+ {
+  "id": 91,
+  "email": "omar@gmail.com",
+  "name": "Omar Farooq",
+  "message": "I would like to know more about what you offer.",
+  "source": "website-form",
+  "score": 30,
+  "tier": "cold",
+  "reasons": [
+   "AI enrichment unavailable (schema_mismatch) - rule-based score used"
+  ],
+  "received_at": "2026-08-05T04:21:08.593674+00:00",
+  "created_at": "2026-08-05T10:30:34.591204+00:00",
+  "ai_intent": null,
+  "ai_urgency": null,
+  "ai_summary": null,
+  "ai_status": "schema_mismatch"
+ },
+ {
+  "id": 107,
+  "email": "outreach@seo-backlinks-pro.biz",
+  "name": "Growth Team",
+  "message": "We offer premium guest post and backlink opportunities.",
+  "source": "website-form",
+  "score": 0,
+  "tier": "cold",
+  "reasons": [
+   "matches common spam pattern"
+  ],
+  "received_at": "2026-08-05T03:27:56.491975+00:00",
+  "created_at": "2026-08-05T10:30:34.681197+00:00",
+  "ai_intent": "spam",
+  "ai_urgency": "low",
+  "ai_summary": "Unsolicited SEO outreach",
+  "ai_status": "ok"
+ },
+ {
+  "id": 99,
+  "email": "outreach@seo-backlinks-pro.biz",
+  "name": "Growth Team",
+  "message": "We offer premium guest post and backlink opportunities.",
+  "source": "website-form",
+  "score": 0,
+  "tier": "cold",
+  "reasons": [
+   "matches common spam pattern"
+  ],
+  "received_at": "2026-08-05T01:49:54.901374+00:00",
+  "created_at": "2026-08-05T10:30:34.630561+00:00",
+  "ai_intent": "spam",
+  "ai_urgency": "low",
+  "ai_summary": "Unsolicited SEO outreach",
+  "ai_status": "ok"
+ },
+ {
+  "id": 102,
+  "email": "nadia@quantum-textiles.com",
+  "name": "Nadia Rahman",
+  "message": "Interested in a demo. Replacing our supplier, need a contract this quarter.",
+  "source": "linkedin",
+  "score": 87,
+  "tier": "hot",
+  "reasons": [
+   "business email domain",
+   "buying signals: demo, contract"
+  ],
+  "received_at": "2026-08-05T01:40:08.766310+00:00",
+  "created_at": "2026-08-05T10:30:34.644985+00:00",
+  "ai_intent": "buying",
+  "ai_urgency": "high",
+  "ai_summary": "Replacing supplier, wants contract this quarter",
+  "ai_status": "ok"
+ },
+ {
+  "id": 106,
+  "email": "junaid@swiftcargo.pk",
+  "name": "Junaid Aslam",
+  "message": "Can you handle 500 shipments per month? What is the pricing structure?",
+  "source": "website-form",
+  "score": 63,
+  "tier": "warm",
+  "reasons": [
+   "business email domain",
+   "buying signals: pricing",
+   "AI enrichment unavailable (api_error: 429 rate limited) - rule-based score used"
+  ],
+  "received_at": "2026-08-05T01:33:24.981635+00:00",
+  "created_at": "2026-08-05T10:30:34.673929+00:00",
+  "ai_intent": null,
+  "ai_urgency": null,
+  "ai_summary": null,
+  "ai_status": "api_error: 429 rate limited"
+ },
+ {
+  "id": 101,
   "email": "tomreeves88@gmail.com",
   "name": "Tom Reeves",
   "message": "hi",
@@ -70,109 +217,11 @@
   "reasons": [
    "very short message"
   ],
-  "received_at": "2026-08-03T15:09:13.528513+00:00",
-  "created_at": "2026-08-03T17:46:35.698537+00:00"
- },
- {
-  "id": 77,
-  "email": "bilal.khan@northwind-logistics.co",
-  "name": "Bilal Khan",
-  "message": "Looking for pricing on your enterprise plan. Can we book a demo this week?",
-  "source": "website-form",
-  "score": 71,
-  "tier": "warm",
-  "reasons": [
-   "business email domain",
-   "buying signals: pricing, demo"
-  ],
-  "received_at": "2026-08-03T15:00:14.712532+00:00",
-  "created_at": "2026-08-03T17:46:35.735085+00:00"
- },
- {
-  "id": 78,
-  "email": "outreach@seo-backlinks-pro.biz",
-  "name": "Growth Team",
-  "message": "We offer premium guest post and backlink opportunities for your site.",
-  "source": "website-form",
-  "score": 15,
-  "tier": "cold",
-  "reasons": [
-   "business email domain",
-   "matches common spam pattern"
-  ],
-  "received_at": "2026-08-03T14:15:21.787484+00:00",
-  "created_at": "2026-08-03T17:46:35.740371+00:00"
- },
- {
-  "id": 61,
-  "email": "bilal.khan@northwind-logistics.co",
-  "name": "Bilal Khan",
-  "message": "Looking for pricing on your enterprise plan. Can we book a demo this week?",
-  "source": "website-form",
-  "score": 71,
-  "tier": "warm",
-  "reasons": [
-   "business email domain",
-   "buying signals: pricing, demo"
-  ],
-  "received_at": "2026-08-03T12:25:17.160067+00:00",
-  "created_at": "2026-08-03T17:46:35.670654+00:00"
- },
- {
-  "id": 73,
-  "email": "outreach@seo-backlinks-pro.biz",
-  "name": "Growth Team",
-  "message": "We offer premium guest post and backlink opportunities for your site.",
-  "source": "website-form",
-  "score": 15,
-  "tier": "cold",
-  "reasons": [
-   "business email domain",
-   "matches common spam pattern"
-  ],
-  "received_at": "2026-08-03T11:00:00.276216+00:00",
-  "created_at": "2026-08-03T17:46:35.717623+00:00"
- },
- {
-  "id": 67,
-  "email": "omar@gmail.com",
-  "name": "Omar Farooq",
-  "message": "I'd like to know more about what you offer and whether it fits our use case.",
-  "source": "website-form",
-  "score": 30,
-  "tier": "cold",
-  "reasons": [],
-  "received_at": "2026-08-03T10:48:15.824708+00:00",
-  "created_at": "2026-08-03T17:46:35.694880+00:00"
- },
- {
-  "id": 81,
-  "email": "outreach@seo-backlinks-pro.biz",
-  "name": "Growth Team",
-  "message": "We offer premium guest post and backlink opportunities for your site.",
-  "source": "website-form",
-  "score": 15,
-  "tier": "cold",
-  "reasons": [
-   "business email domain",
-   "matches common spam pattern"
-  ],
-  "received_at": "2026-08-03T10:37:47.161785+00:00",
-  "created_at": "2026-08-03T17:46:35.752291+00:00"
- },
- {
-  "id": 69,
-  "email": "a.malik@meridian-health.org",
-  "name": "Ayesha Malik",
-  "message": "Our procurement team is evaluating vendors. Please send a proposal including implementation timeline and total cost of ownership for a 50 seat deployment.",
-  "source": "referral",
-  "score": 79,
-  "tier": "hot",
-  "reasons": [
-   "business email domain",
-   "buying signals: cost, timeline, proposal"
-  ],
-  "received_at": "2026-08-03T09:47:23.964870+00:00",
-  "created_at": "2026-08-03T17:46:35.702155+00:00"
+  "received_at": "2026-08-05T00:13:21.442339+00:00",
+  "created_at": "2026-08-05T10:30:34.640041+00:00",
+  "ai_intent": "spam",
+  "ai_urgency": "low",
+  "ai_summary": "No real content",
+  "ai_status": "ok"
  }
 ]

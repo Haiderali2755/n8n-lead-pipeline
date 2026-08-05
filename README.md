@@ -155,19 +155,25 @@ message. Send it twice within 15 minutes and the second call returns
 ## The demo page
 
 `docs/` holds a static copy of the dashboard for GitHub Pages. It is the same
-interface rendering fixtures captured off a running instance rather than
-polling the API, because Pages serves static files only. The page says so at
-the top rather than implying it is live.
+file rendering captured fixtures instead of polling the API, because Pages
+serves static files only. The page says so at the top rather than implying it
+is live.
 
 Timestamps are rebased at render time against the newest lead, so the snapshot
 reads as recent months later instead of drifting into "3 weeks ago".
+
+The build script transforms `dashboard/index.html` rather than maintaining a
+second copy, so the demo cannot drift away from the real dashboard. It asserts
+the expected markers are present and exits non-zero if the transform silently
+stops matching.
 
 To regenerate it:
 
 ```bash
 docker compose up -d
-python3 scripts/seed.py
-python3 scripts/capture_demo.py
+python3 scripts/seed.py            # optional, if the database is empty
+python3 scripts/capture_demo.py    # capture live API responses
+python3 scripts/build_demo_page.py # rebuild the static page
 ```
 
 ## Layout
@@ -178,7 +184,8 @@ api/main.py                  FastAPI tracker: dedupe, storage, stats
 dashboard/index.html         Live monitoring dashboard, no build step
 docs/                        Static demo for GitHub Pages
 scripts/seed.py              Sample data using the workflow's own scoring rules
-scripts/capture_demo.py      Regenerates the demo fixtures from a running stack
+scripts/capture_demo.py      Captures live API responses into docs/data/
+scripts/build_demo_page.py   Rebuilds docs/index.html from the live dashboard
 docker-compose.yml           n8n + Postgres + tracker
 ```
 
