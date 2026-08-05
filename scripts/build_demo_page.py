@@ -87,6 +87,14 @@ s = s.replace("""  <div class="health" id="health">""",
     <a href="https://github.com/Haiderali2755/n8n-lead-pipeline">source</a>.
   </div>
 
+  <div class="demo-note">
+    <b>Three tools, one API.</b> The same pipeline was built in n8n, Make.com
+    and Zapier, all posting to this tracker. The
+    <a href="https://github.com/Haiderali2755/n8n-lead-pipeline/blob/main/COMPARISON.md">comparison</a>
+    records where each one broke — Make rewriting one rule twice, Zapier
+    flattening an array into a string on the way out.
+  </div>
+
   <div class="health" id="health">""")
 
 s = s.replace("""  .kpis { display: grid;""",
@@ -104,7 +112,8 @@ s = s.replace("<title>Lead Pipeline — Monitor</title>",
               "<title>Lead Pipeline Monitor — Live Demo</title>")
 
 # Fail loudly if the source changed shape, rather than shipping a broken page.
-required = ["data/stats-", "TIME_SHIFT_MS", "Static snapshot", "AI enrichment"]
+required = ["data/stats-", "TIME_SHIFT_MS", "Static snapshot", "AI enrichment",
+            "Three tools, one API"]
 missing = [r for r in required if r not in s]
 if missing:
     sys.exit(f"transform failed, missing: {missing}\nDid dashboard/index.html change shape?")
