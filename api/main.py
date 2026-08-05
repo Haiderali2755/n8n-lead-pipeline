@@ -41,6 +41,10 @@ CREATE TABLE IF NOT EXISTS leads (
     score        INT         NOT NULL,
     tier         TEXT        NOT NULL,
     reasons      JSONB       NOT NULL DEFAULT '[]'::jsonb,
+    ai_intent    TEXT,
+    ai_urgency   TEXT,
+    ai_summary   TEXT,
+    ai_status    TEXT,
     received_at  TIMESTAMPTZ NOT NULL,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -71,6 +75,13 @@ CREATE TABLE IF NOT EXISTS failures (
 );
 
 CREATE INDEX IF NOT EXISTS failures_occurred_idx ON failures (occurred_at DESC);
+
+-- Added after the AI enrichment step. Separate ALTERs so an existing install
+-- picks them up on restart without a manual migration.
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS ai_intent  TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS ai_urgency TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS ai_summary TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS ai_status  TEXT;
 """
 
 
@@ -124,6 +135,10 @@ class LeadIn(BaseModel):
     score: int = Field(ge=0, le=100)
     tier: str = Field(pattern="^(hot|warm|cold)$")
     reasons: list[str] = Field(default_factory=list)
+    ai_intent: Optional[str] = None
+    ai_urgency: Optional[str] = None
+    ai_summary: Optional[str] = None
+    ai_status: Optional[str] = None
     received_at: Optional[datetime] = None
 
 
@@ -169,8 +184,9 @@ async def create_lead(lead: LeadIn):
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            INSERT INTO leads (email, name, message, source, score, tier, reasons, received_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)
+            INSERT INTO leads (email, name, message, source, score, tier, reasons,
+                               ai_intent, ai_urgency, ai_summary, ai_status, received_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12)
             RETURNING id, created_at
             """,
             lead.email,
@@ -180,6 +196,10 @@ async def create_lead(lead: LeadIn):
             lead.score,
             lead.tier,
             __import__("json").dumps(lead.reasons),
+            lead.ai_intent,
+            lead.ai_urgency,
+            lead.ai_summary,
+            lead.ai_status,
             lead.received_at or datetime.now(timezone.utc),
         )
     return {"id": row["id"], "created_at": row["created_at"].isoformat()}
@@ -220,6 +240,15 @@ async def stats(hours: int = 24):
             """,
             since,
         )
+        ai_health = await conn.fetchrow(
+            """
+            SELECT count(*) FILTER (WHERE ai_status = 'ok')                   AS ai_ok,
+                   count(*) FILTER (WHERE ai_status IS NOT NULL
+                                      AND ai_status <> 'ok')                  AS ai_failed
+            FROM leads WHERE received_at >= $1
+            """,
+            since,
+        )
         fail_count = await conn.fetchval(
             "SELECT count(*) FROM failures WHERE occurred_at >= $1 AND NOT resolved",
             since,
@@ -255,6 +284,7 @@ async def stats(hours: int = 24):
     return {
         "window_hours": hours,
         "totals": dict(totals),
+        "ai": dict(ai_health),
         "open_failures": fail_count,
         "minutes_since_last_lead": minutes_since,
         "by_source": [dict(r) for r in by_source],

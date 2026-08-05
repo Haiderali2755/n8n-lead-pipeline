@@ -12,7 +12,10 @@
       "name": "Lead Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-660, 300],
+      "position": [
+        -660,
+        300
+      ],
       "webhookId": "lead-intake"
     },
     {
@@ -23,7 +26,10 @@
       "name": "Validate and Normalise",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-440, 300]
+      "position": [
+        -440,
+        300
+      ]
     },
     {
       "parameters": {
@@ -54,7 +60,10 @@
       "name": "Valid Payload?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [-220, 300]
+      "position": [
+        -220,
+        300
+      ]
     },
     {
       "parameters": {
@@ -95,7 +104,10 @@
       "name": "Claim Dedupe Key",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [0, 200]
+      "position": [
+        0,
+        200
+      ]
     },
     {
       "parameters": {
@@ -125,7 +137,10 @@
       "name": "First Time Seen?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [220, 200]
+      "position": [
+        220,
+        200
+      ]
     },
     {
       "parameters": {
@@ -135,7 +150,10 @@
       "name": "Score Lead",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 200]
+      "position": [
+        440,
+        200
+      ]
     },
     {
       "parameters": {
@@ -166,7 +184,10 @@
       "name": "Store Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 200],
+      "position": [
+        660,
+        200
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -179,7 +200,10 @@
       "name": "202 Accepted",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [880, 120]
+      "position": [
+        880,
+        120
+      ]
     },
     {
       "parameters": {
@@ -192,7 +216,10 @@
       "name": "200 Duplicate",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [440, 380]
+      "position": [
+        440,
+        380
+      ]
     },
     {
       "parameters": {
@@ -205,7 +232,10 @@
       "name": "400 Rejected",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [0, 440]
+      "position": [
+        0,
+        440
+      ]
     },
     {
       "parameters": {
@@ -229,7 +259,10 @@
       "name": "Record Failure",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 300]
+      "position": [
+        880,
+        300
+      ]
     },
     {
       "parameters": {
@@ -242,42 +275,182 @@
       "name": "503 Storage Failed",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1100, 300]
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  contents: [{ parts: [{ text: `Classify this sales enquiry. Reply with ONLY a JSON object, no markdown fences, no commentary.\\n\\nSchema:\\n{\"intent\":\"buying|researching|support|spam\",\"summary\":\"one short sentence\",\"urgency\":\"high|medium|low\"}\\n\\nEnquiry from ${$json.name} <${$json.email}>:\\n${$json.message}` }] }],\n  generationConfig: { temperature: 0, maxOutputTokens: 200, responseMimeType: 'application/json' }\n}) }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "enrich-llm",
+      "name": "Classify with Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge the model's answer into the lead, and fall back cleanly when it fails.\n//\n// Three things go wrong with LLMs inside a workflow, and all three are handled\n// here rather than being allowed to kill the run:\n//   1. the API is down, rate limited, or times out\n//   2. it returns prose instead of JSON\n//   3. it returns JSON, but not the shape we asked for\n//\n// In every case the lead still gets stored with its rule-based score. An\n// enrichment failure must never cost a lead.\n\nconst scored = $('Score Lead').all();\nconst out = [];\n\nfor (let i = 0; i < scored.length; i++) {\n  const lead = scored[i].json;\n  let enrichment = null;\n  let status = 'ok';\n\n  try {\n    const resp = $input.all()[i]?.json ?? {};\n\n    // Google returns errors as a 200 with an `error` object, so check that\n    // before trusting the body.\n    if (resp.error) {\n      status = `api_error: ${resp.error.message ?? 'unknown'}`;\n      throw new Error(status);\n    }\n\n    const text = resp?.candidates?.[0]?.content?.parts?.[0]?.text;\n    if (!text) {\n      status = 'empty_response';\n      throw new Error(status);\n    }\n\n    // Models still wrap JSON in markdown fences sometimes, even when asked not\n    // to. Strip them before parsing rather than letting JSON.parse throw.\n    const cleaned = text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();\n\n    // Set the failure status BEFORE parsing. If JSON.parse throws, the catch\n    // block has no way to know why, and the status would wrongly stay 'ok'.\n    status = 'parse_error';\n    const parsed = JSON.parse(cleaned);\n    status = 'ok';\n\n    // Validate the shape. A model that invents fields or returns a string\n    // where an enum was asked for is a failure, not a partial success.\n    const intents = ['buying', 'researching', 'support', 'spam'];\n    const urgencies = ['high', 'medium', 'low'];\n\n    if (!intents.includes(parsed.intent) || !urgencies.includes(parsed.urgency)) {\n      status = 'schema_mismatch';\n      throw new Error(status);\n    }\n\n    enrichment = {\n      intent: parsed.intent,\n      urgency: parsed.urgency,\n      summary: String(parsed.summary ?? '').slice(0, 300),\n    };\n  } catch (e) {\n    // Swallowed on purpose. status already records why, and the lead below is\n    // returned with its rule-based score intact.\n    enrichment = null;\n  }\n\n  // The LLM adjusts the score, it does not replace it. A model having a bad\n  // day can move a lead one tier, not invent a hot lead out of nothing.\n  let score = lead.score;\n  const reasons = [...(lead.reasons ?? [])];\n\n  if (enrichment) {\n    if (enrichment.intent === 'buying') { score += 10; reasons.push('AI: buying intent'); }\n    if (enrichment.intent === 'spam')   { score -= 30; reasons.push('AI: looks like spam'); }\n    if (enrichment.urgency === 'high')  { score += 5;  reasons.push('AI: urgent'); }\n  } else {\n    reasons.push(`AI enrichment unavailable (${status}) - rule-based score used`);\n  }\n\n  score = Math.max(0, Math.min(100, score));\n\n  out.push({\n    json: {\n      ...lead,\n      score,\n      reasons,\n      tier: score >= 72 ? 'hot' : score >= 42 ? 'warm' : 'cold',\n      ai_intent: enrichment?.intent ?? null,\n      ai_urgency: enrichment?.urgency ?? null,\n      ai_summary: enrichment?.summary ?? null,\n      ai_status: status,\n    },\n  });\n}\n\nreturn out;\n"
+      },
+      "id": "merge-enrich",
+      "name": "Merge AI + Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        60
+      ]
     }
   ],
   "connections": {
     "Lead Webhook": {
-      "main": [[{ "node": "Validate and Normalise", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Validate and Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Validate and Normalise": {
-      "main": [[{ "node": "Valid Payload?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Valid Payload?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Valid Payload?": {
       "main": [
-        [{ "node": "Claim Dedupe Key", "type": "main", "index": 0 }],
-        [{ "node": "400 Rejected", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Claim Dedupe Key",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "400 Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Claim Dedupe Key": {
-      "main": [[{ "node": "First Time Seen?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "First Time Seen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "First Time Seen?": {
       "main": [
-        [{ "node": "Score Lead", "type": "main", "index": 0 }],
-        [{ "node": "200 Duplicate", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Score Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "200 Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Score Lead": {
-      "main": [[{ "node": "Store Lead", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Classify with Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Store Lead": {
       "main": [
-        [{ "node": "202 Accepted", "type": "main", "index": 0 }],
-        [{ "node": "Record Failure", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "202 Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Record Failure": {
-      "main": [[{ "node": "503 Storage Failed", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "503 Storage Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify with Gemini": {
+      "main": [
+        [
+          {
+            "node": "Merge AI + Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge AI + Fallback": {
+      "main": [
+        [
+          {
+            "node": "Store Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {

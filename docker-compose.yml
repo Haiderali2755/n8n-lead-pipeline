@@ -33,6 +33,9 @@ services:
       # host networking assumptions.
       TRACKER_URL: http://tracker:8000
       TRACKER_API_KEY: ${TRACKER_API_KEY:-dev-key-change-me}
+      # Read from .env, which is gitignored. The key never enters the workflow
+      # JSON, so the exported workflow is safe to publish.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       N8N_SECURE_COOKIE: "false"
       GENERIC_TIMEZONE: Asia/Karachi
       # Allows $env access inside Code and HTTP nodes. Without this the

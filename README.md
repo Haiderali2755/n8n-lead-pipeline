@@ -53,11 +53,26 @@ arriving together will both pass the check. The tracker uses a `UNIQUE` primary
 key with `ON CONFLICT DO NOTHING` and returns whether a row was actually
 inserted. The database decides, so the race cannot happen.
 
-**Scoring is rules, not an LLM.** An API call per lead would be the slowest and
-most failure-prone step in the workflow, and the first thing to blow a rate
-limit under a traffic spike. Rules are instant, free, deterministic, and a
-client can read them and argue with them — which matters more here than
-sophistication.
+**Rules score first, the LLM only adjusts.** Scoring runs on every lead, so an
+API call cannot be the thing a lead depends on. The rule-based score is
+computed first and is always sufficient on its own. Gemini then classifies
+intent and urgency and moves the score by at most ±30 points. A model having a
+bad day can shift a lead one tier; it cannot invent a hot lead or lose one.
+
+**The LLM step is designed to fail.** Three things go wrong with models inside
+workflows, and all three are handled rather than allowed to kill the run:
+
+| Failure | What happens |
+|---|---|
+| API down, rate limited, timed out | `api_error`, rule score used |
+| Returns prose instead of JSON | `parse_error`, rule score used |
+| Returns JSON in the wrong shape | `schema_mismatch`, rule score used |
+| Wrapped in markdown fences | fences stripped, parsed normally |
+
+Every outcome is recorded in `ai_status` and surfaced in `/api/stats`, so the
+enrichment success rate is visible rather than assumed. Verified against all
+seven cases — including markdown-fenced JSON and invalid enum values — and in
+every failure path the lead is still stored with a valid score.
 
 **Failures are recorded, not just logged.** The `Store Lead` node continues on
 error into a node that POSTs the failure to the tracker, so the dashboard can
@@ -76,6 +91,8 @@ file**.
 | Validate and Normalise | Rejects malformed payloads early with a readable reason |
 | Claim Dedupe Key | Atomic claim against the tracker; duplicates get `200 duplicate` |
 | Score Lead | Rule-based 0–100 score plus hot/warm/cold tier and the reasons why |
+| Classify with Gemini | Intent and urgency classification; `neverError` so a failure returns a body instead of halting |
+| Merge AI + Fallback | Validates the model output and falls back to the rule score on any failure |
 | Store Lead | Persists to Postgres, 3 retries with backoff |
 | Record Failure | On error, writes the failure to the tracker so it appears on the dashboard |
 
@@ -102,8 +119,13 @@ label, never colour alone.
 Requires Docker.
 
 ```bash
+cp .env.example .env    # add a free Gemini key from aistudio.google.com/apikey
 docker compose up -d --build
 ```
+
+The Gemini key is optional. Without it the workflow still runs end to end —
+every lead is stored with its rule-based score and `ai_status` records why
+enrichment was skipped. That is the fallback path working, not a broken setup.
 
 | Service | URL |
 |---|---|
@@ -162,4 +184,4 @@ docker-compose.yml           n8n + Postgres + tracker
 
 ## Stack
 
-n8n · Python · FastAPI · PostgreSQL · Docker
+n8n · Python · FastAPI · PostgreSQL · Docker · Gemini API
