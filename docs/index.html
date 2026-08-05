@@ -13,26 +13,26 @@
      icon and a label, never colour alone. */
   :root {
     color-scheme: light;
-    --surface-1: #fcfcfb; --surface-2: #f2f2ef; --surface-3: #e9e9e4;
+    --surface-1: #fafdfb; --surface-2: #edf5f0; --surface-3: #e1ede6;
     --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #7a7974;
-    --rule: #e2e2dd;
+    --rule: #d9e7e0;
     --hot: #2a78d6; --warm: #eb6834; --cold: #1baf7a;
     --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
   }
   @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) {
       color-scheme: dark;
-      --surface-1: #1a1a19; --surface-2: #232322; --surface-3: #2c2c2a;
+      --surface-1: #151a17; --surface-2: #1c231e; --surface-3: #242d27;
       --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8f8e85;
-      --rule: #34342f;
+      --rule: #2d382f;
       --hot: #3987e5; --warm: #d95926; --cold: #199e70;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --surface-1: #1a1a19; --surface-2: #232322; --surface-3: #2c2c2a;
+    --surface-1: #151a17; --surface-2: #1c231e; --surface-3: #242d27;
     --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8f8e85;
-    --rule: #34342f;
+    --rule: #2d382f;
     --hot: #3987e5; --warm: #d95926; --cold: #199e70;
   }
   * { box-sizing: border-box; }
