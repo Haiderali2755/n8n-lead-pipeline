@@ -1,0 +1,19 @@
+{
+  "id": "./index.html",
+  "name": "Plumbivo — Plumbing Business Demo",
+  "short_name": "Plumbivo",
+  "description": "Plumbivo cross-platform interactive plumbing business demo.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f8f8",
+  "theme_color": "#092c3a",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
